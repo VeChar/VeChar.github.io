@@ -4,36 +4,11 @@
   
     
     <entry>
-      <title>道可道,非常道,名可名非常名.</title>
-      <link href="22855.html"/>
-      <url>22855.html</url>
+      <title>Docker安装Nacos</title>
+      <link href="12320.html"/>
+      <url>12320.html</url>
       
-        <content type="html"><![CDATA[]]></content>
-      
-      
-      <categories>
-          
-          <category> BeautyWords </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> 诗词歌赋 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>Docker安装nacos</title>
-      <link href="63393.html"/>
-      <url>63393.html</url>
-      
-        <content type="html"><![CDATA[]]></content>
+        <content type="html"><![CDATA[<h2 id="创建容器"><a href="#创建容器" class="headerlink" title="创建容器"></a>创建容器</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">docker run -d \</span><br><span class="line">    -e MODE=standalone \</span><br><span class="line">    -e SPRING_DATASOURCE_PLATFORM=mysql \</span><br><span class="line">    -e MYSQL_SERVICE_HOST=mysql \</span><br><span class="line">    -e MYSQL_SERVICE_PORT=3306 \</span><br><span class="line">    -e MYSQL_SERVICE_USER=root \</span><br><span class="line">    -e MYSQL_SERVICE_PASSWORD=root \</span><br><span class="line">    -e MYSQL_SERVICE_DB_NAME=nacos \</span><br><span class="line">    -v /root/docker/nacos/data/:/home/nacos/data \</span><br><span class="line">    -v /root/docker/nacos/logs/:/home/nacos/logs \</span><br><span class="line">    -p 8848:8848 \</span><br><span class="line">    --name nacos-standalone \</span><br><span class="line">    --restart=always \</span><br><span class="line">     nacos/nacos-server:latest</span><br></pre></td></tr></table></figure><div class="note blue simple"><ul><li>指令说明：<br>单节点模式  MODE=standalone<br>数据库地址  MYSQL_SERVICE_HOST<br>数据库用户名  MYSQL_SERVICE_USER<br>数据库密码  MYSQL_SERVICE_PASSWORD<br>需连接的数据库名称  MYSQL_SERVICE_DB_NAME<br>端口映射  -p  8848:8848</li><li>其他说明：<br>如需要映射容器内nacos/data等目录到宿主机，则先创建相关目录，如果是配置文件的方式启动nacos则需要映射配置文件目录或在容器内修改配置文件</li></ul></div><h2 id="创建网络"><a href="#创建网络" class="headerlink" title="创建网络"></a>创建网络</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker network create common-net</span><br></pre></td></tr></table></figure><div class="note blue simple"><ul><li>指令说明：<br>docker network create 自定义网络名称</li></ul></div><h2 id="加入网络"><a href="#加入网络" class="headerlink" title="加入网络"></a>加入网络</h2><h3 id="将mysql容器加入到该网络中"><a href="#将mysql容器加入到该网络中" class="headerlink" title="将mysql容器加入到该网络中"></a>将mysql容器加入到该网络中</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker network connect common-net mysql</span><br></pre></td></tr></table></figure><h3 id="将nacos容器加入到该网络中"><a href="#将nacos容器加入到该网络中" class="headerlink" title="将nacos容器加入到该网络中"></a>将nacos容器加入到该网络中</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker network connect common-net nacos-standalone</span><br></pre></td></tr></table></figure><div class="note blue simple"><ul><li>指令说明：<br>docker network connect 指定网络名称 容器名称</li></ul></div>]]></content>
       
       
       <categories>
@@ -56,31 +31,6 @@
     
     
     <entry>
-      <title>Test</title>
-      <link href="14373.html"/>
-      <url>14373.html</url>
-      
-        <content type="html"><![CDATA[]]></content>
-      
-      
-      <categories>
-          
-          <category> 测试分类 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> 测试 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
       <title>Hello World</title>
       <link href="16107.html"/>
       <url>16107.html</url>
@@ -90,10 +40,16 @@
       
       <categories>
           
-          <category> web前端 </category>
+          <category> Hexo </category>
           
       </categories>
       
+      
+        <tags>
+            
+            <tag> Hexo </tag>
+            
+        </tags>
       
     </entry>
     
