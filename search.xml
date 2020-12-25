@@ -11,6 +11,22 @@
         <content type="html"><![CDATA[<h2 id="创建容器"><a href="#创建容器" class="headerlink" title="创建容器"></a>创建容器</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull jenkins/jenkins:lts</span><br></pre></td></tr></table></figure><h2 id="启动容器"><a href="#启动容器" class="headerlink" title="启动容器"></a>启动容器</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker run -itd -p 9001:8080 -p 50000:50000 \</span><br><span class="line">   --name jenkins --privileged=true \</span><br><span class="line">   -v /Users/vechar/Dev/DevInstall/Docker/jenkins/jenkins_home:/var/jenkins_home \</span><br><span class="line">   -v /Users/vechar/Dev/DevInstall/apache-maven-3.6.3:/usr/local/apache-maven-3.6.3 \</span><br><span class="line">   -v /Library/Java/JavaVirtualMachines/jdk1.8.0_201.jdk/Contents/Home:/usr/local/1.8.0_201 \</span><br><span class="line">   -v /Users/vechar/Dev/DevInstall/gradle-6.5:/usr/local/gradle-6.5 \</span><br><span class="line">   --env JAVA_OPTS=&quot;-Duser.timezone=GMT+08&quot; \</span><br><span class="line">    jenkins/jenkins:lts</span><br></pre></td></tr></table></figure><div class="note blue simple"><ul><li>指令说明：<br>-v：目录Jenkins_home目录映射，以及把本地的环境映射到容器内</li></ul></div><h2 id="Docker中Jenkins升级"><a href="#Docker中Jenkins升级" class="headerlink" title="Docker中Jenkins升级"></a>Docker中Jenkins升级</h2><pre><code>1.进入 Jenkins 容器在宿主机的挂载目录/home/jenkins中    cd /home/jenkins2.在 CentOS7 中下载Jenkins的最新war包    wget http://mirrors.jenkins.io/war/latest/jenkins.war3.进入容器    docker exec -it -u root +ContainerId bash4.查看容器中jenkins war包的位置，并备份原来的war包    whereis jenkins    cd /usr/share/jenkins    cp jenkins.war jenkinsBAK.war5.将/var/jenkins_home下的包cp到/usr/share/jenkins下覆盖    cp /var/jenkins_home/jenkins.war /usr/share/jenkins/6.退出容器并重启    exit    docker restart +ContainerName</code></pre><h2 id="插件安装提速方案"><a href="#插件安装提速方案" class="headerlink" title="插件安装提速方案"></a>插件安装提速方案</h2><blockquote><p>找到安装目录下的Jenkins\updates\default.json文件，替换 <code>updates.jenkins-ci.org/download</code> 为 <code>mirrors.tuna.tsinghua.edu.cn/jenkins</code>，保存后重启，重新开始安装插件即可</p></blockquote>]]></content>
       
       
+      <categories>
+          
+          <category> Docker </category>
+          
+          <category> 安装文档 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Docker </tag>
+            
+            <tag> Jenkins </tag>
+            
+        </tags>
       
     </entry>
     
@@ -24,6 +40,22 @@
         <content type="html"><![CDATA[<h2 id="拉取镜像"><a href="#拉取镜像" class="headerlink" title="拉取镜像"></a>拉取镜像</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull mysql:latest</span><br></pre></td></tr></table></figure><h2 id="安装容器"><a href="#安装容器" class="headerlink" title="安装容器"></a>安装容器</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">docker run -p 3306:3306 --name MySQL \</span><br><span class="line">    --mount type=bind,src=/root/docker/mysql/config/my.cnf,dst=/etc/mysql/my.cnf \</span><br><span class="line">    --mount type=bind,src=/root/docker/mysql/datadir,dst=/var/lib/mysql \</span><br><span class="line">    --mount type=bind,src=/root/docker/mysql/log,dst=/var/log/mysql \</span><br><span class="line">    --mount type=bind,src=/root/docker/mysql/mysql-files,dst=/var/lib/mysql-files/ \</span><br><span class="line">    -e MYSQL_ROOT_PASSWORD=root \</span><br><span class="line">    -d mysql --lower_case_table_names=1</span><br></pre></td></tr></table></figure><div class="note blue simple"><ul><li>指令说明：<br>-v 本地目录映射到容器目录<br>-e MYSQL_ROOT_PASSWORD 指定root用户密码<br>–lower_case_table_names=1 忽略表名大小写的问题</li></ul></div><h2 id="配置远程访问"><a href="#配置远程访问" class="headerlink" title="配置远程访问"></a>配置远程访问</h2><ul><li>修改mysql数据库的user表信息<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">use mysql;</span><br><span class="line">select user,host from user;</span><br></pre></td></tr></table></figure></li><li>修改root用户的访问权限<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">update user set host=&#x27;%&#x27; where user =&#x27;root&#x27;;</span><br></pre></td></tr></table></figure></li><li>修改密码策略<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER USER &#x27;root&#x27;@&#x27;%&#x27; IDENTIFIED WITH mysql_native_password BY &#x27;root&#x27;;</span><br></pre></td></tr></table></figure></li><li>授权远程连接<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grant all on *.* to &#x27;root&#x27;@&#x27;%&#x27;;</span><br></pre></td></tr></table></figure></li><li>刷新配置<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">flush privileges;</span><br></pre></td></tr></table></figure></li></ul>]]></content>
       
       
+      <categories>
+          
+          <category> Docker </category>
+          
+          <category> 安装文档 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Docker </tag>
+            
+            <tag> MySQL </tag>
+            
+        </tags>
       
     </entry>
     
@@ -37,6 +69,22 @@
         <content type="html"><![CDATA[<h2 id="拉取镜像"><a href="#拉取镜像" class="headerlink" title="拉取镜像"></a>拉取镜像</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull nginx:latest</span><br></pre></td></tr></table></figure><h2 id="安装容器"><a href="#安装容器" class="headerlink" title="安装容器"></a>安装容器</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">docker run --name Nginx -p 80:80 -p 443:443 \</span><br><span class="line">-v /root/docker/nginx/conf:/etc/nginx \</span><br><span class="line">-v /root/docker/nginx/cert:/usr/share/nginx/cert \</span><br><span class="line">-v /root/docker/nginx/logs:/var/log/nginx \</span><br><span class="line">-v /root/docker/nginx/html:/usr/share/nginx/html \</span><br><span class="line">-d nginx</span><br></pre></td></tr></table></figure>]]></content>
       
       
+      <categories>
+          
+          <category> Docker </category>
+          
+          <category> 安装文档 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Docker </tag>
+            
+            <tag> Nginx </tag>
+            
+        </tags>
       
     </entry>
     
@@ -50,6 +98,22 @@
         <content type="html"><![CDATA[<h2 id="拉取镜像"><a href="#拉取镜像" class="headerlink" title="拉取镜像"></a>拉取镜像</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull redis </span><br></pre></td></tr></table></figure><h2 id="启动容器"><a href="#启动容器" class="headerlink" title="启动容器"></a>启动容器</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker run -p 6379:6379 --name Redis \</span><br><span class="line">-v /Users/vechar/Dev/DevInstall/Docker/redis/conf/redis.conf:/etc/redis/redis.conf \</span><br><span class="line">-v /Users/vechar/Dev/DevInstall/Docker/redis/data:/data \</span><br><span class="line">-d redis redis-server /etc/redis/redis.conf --appendonly yes</span><br></pre></td></tr></table></figure><blockquote><p>注意：配置文件中daemonize no 需要置为no 因为docker需要一个前台进程</p></blockquote><div class="note blue simple"><ul><li>指令说明：<br>-p 6379:6379 端口映射：前表示主机部分，：后表示容器部分<br>–name redis  指定该容器名称，查看和进行操作都比较方便。<br>-v 挂载目录，规则与端口映射相同。<br>-d redis 表示后台启动redis<br>redis-server /etc/redis/redis.conf  以配置文件启动redis，加载容器内的conf文件，最终找到的是挂载的目录/usr/local/docker/redis.conf<br>–appendonly yes  开启redis 持久化</li></ul></div>]]></content>
       
       
+      <categories>
+          
+          <category> Docker </category>
+          
+          <category> 安装文档 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Docker </tag>
+            
+            <tag> Redis </tag>
+            
+        </tags>
       
     </entry>
     
@@ -63,6 +127,22 @@
         <content type="html"><![CDATA[<h2 id="创建容器"><a href="#创建容器" class="headerlink" title="创建容器"></a>创建容器</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">docker run -d \</span><br><span class="line">    -e MODE=standalone \</span><br><span class="line">    -e SPRING_DATASOURCE_PLATFORM=mysql \</span><br><span class="line">    -e MYSQL_SERVICE_HOST=mysql \</span><br><span class="line">    -e MYSQL_SERVICE_PORT=3306 \</span><br><span class="line">    -e MYSQL_SERVICE_USER=root \</span><br><span class="line">    -e MYSQL_SERVICE_PASSWORD=root \</span><br><span class="line">    -e MYSQL_SERVICE_DB_NAME=nacos \</span><br><span class="line">    -v /root/docker/nacos/data/:/home/nacos/data \</span><br><span class="line">    -v /root/docker/nacos/logs/:/home/nacos/logs \</span><br><span class="line">    -p 8848:8848 \</span><br><span class="line">    --name nacos-standalone \</span><br><span class="line">    --restart=always \</span><br><span class="line">     nacos/nacos-server:latest</span><br></pre></td></tr></table></figure><div class="note blue simple"><ul><li>指令说明：<br>单节点模式  MODE=standalone<br>数据库地址  MYSQL_SERVICE_HOST<br>数据库用户名  MYSQL_SERVICE_USER<br>数据库密码  MYSQL_SERVICE_PASSWORD<br>需连接的数据库名称  MYSQL_SERVICE_DB_NAME<br>端口映射  -p  8848:8848</li><li>其他说明：<br>如需要映射容器内nacos/data等目录到宿主机，则先创建相关目录，如果是配置文件的方式启动nacos则需要映射配置文件目录或在容器内修改配置文件</li></ul></div><h2 id="创建网络"><a href="#创建网络" class="headerlink" title="创建网络"></a>创建网络</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker network create common-net</span><br></pre></td></tr></table></figure><div class="note blue simple"><ul><li>指令说明：<br>docker network create 自定义网络名称</li></ul></div><h2 id="加入网络"><a href="#加入网络" class="headerlink" title="加入网络"></a>加入网络</h2><h3 id="将mysql容器加入到该网络中"><a href="#将mysql容器加入到该网络中" class="headerlink" title="将mysql容器加入到该网络中"></a>将mysql容器加入到该网络中</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker network connect common-net mysql</span><br></pre></td></tr></table></figure><h3 id="将nacos容器加入到该网络中"><a href="#将nacos容器加入到该网络中" class="headerlink" title="将nacos容器加入到该网络中"></a>将nacos容器加入到该网络中</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker network connect common-net nacos-standalone</span><br></pre></td></tr></table></figure><div class="note blue simple"><ul><li>指令说明：<br>docker network connect 指定网络名称 容器名称</li></ul></div>]]></content>
       
       
+      <categories>
+          
+          <category> Docker </category>
+          
+          <category> 安装文档 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Docker </tag>
+            
+            <tag> Nacos </tag>
+            
+        </tags>
       
     </entry>
     
@@ -76,6 +156,18 @@
         <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p><h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p><h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p><h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p><h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>]]></content>
       
       
+      <categories>
+          
+          <category> Hexo </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Hexo </tag>
+            
+        </tags>
       
     </entry>
     
