@@ -4,6 +4,37 @@
   
     
     <entry>
+      <title>SpringBoot,NettySocket.IO,WEBRTC实现WEB端控制移动设备</title>
+      <link href="18828.html"/>
+      <url>18828.html</url>
+      
+        <content type="html"><![CDATA[<div class='tip'>    <p>    前言：本文仅提供思路，相关代码不完整披露。    <p></div><h2 id="什么是WEBRTC"><a href="#什么是WEBRTC" class="headerlink" title="什么是WEBRTC?"></a>什么是WEBRTC?</h2><blockquote><p>WEB RTC(Real-Time Communications) 简单点理解就是基于WEB平台的即时多媒体服务。应用譬如：视频会议（P2P），直播，监控，等更多的领域场景。</p></blockquote><h2 id="功能实现"><a href="#功能实现" class="headerlink" title="功能实现"></a>功能实现</h2><blockquote><p>基于WEBRTC实现WEB端通过DataChannel发送点击，长按，滑动控制等指令操作安卓移动端，移动端实时传回屏幕操作反馈（VideoTrack）。WEB端没有（CreateAnswer）功能，移动端没有发起会话的功能（CreateOffer），即双端相互单向通信（WEB端呼叫移动端，设备自动应答）。</p></blockquote><h2 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h2><blockquote><p>在实现这个功能时翻阅了不少国内外相关资料，整理如下：<br>开源WEBRTC示例，WEBRTC接口文档（这个开源项目可能是官方提供的最完整的实现了，包含了很多功能，按需查阅）</p></blockquote><ul><li><a href="https://www.w3.org/TR/webrtc/">https://www.w3.org/TR/webrtc/</a></li><li><a href="https://webrtc.github.io/samples/">https://webrtc.github.io/samples/</a></li><li><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API">https://developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API</a></li></ul><blockquote><p>其他文档（很多文档内容都大同小异，思路基本都差不多）：</p></blockquote><ul><li><a href="https://zhuanlan.zhihu.com/p/59520779">https://zhuanlan.zhihu.com/p/59520779</a></li><li><a href="https://juejin.im/post/5cbdc145e51d456e541b4cec">https://juejin.im/post/5cbdc145e51d456e541b4cec</a></li></ul><h2 id="技术架构"><a href="#技术架构" class="headerlink" title="技术架构"></a>技术架构</h2><ul><li>后端：SpringBoot 2.x，Netty-Socket.IO 1.7.x，Redis，MySQL</li><li>前端：React，AntDesign，Socket-IO.js</li><li>移动端：Android*</li></ul><h2 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h2><blockquote><p>工作流程主要分为3个端，WEB（控制端），Android（移动端），Signal-Server（信令服务器）。</p></blockquote><h3 id="主要依赖"><a href="#主要依赖" class="headerlink" title="主要依赖"></a>主要依赖</h3><ol><li>控制端项目引入SocketIO.js库，实现WebSocket通信，用来发送操作指令，交互信令等。WEBRTC-adapter用来支持WEBRTC相关功能<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&quot;socket.io-client&quot;: &quot;^2.0.2&quot;,</span><br><span class="line">&quot;socket.io-json-parser&quot;: &quot;^2.1.0&quot;,</span><br><span class="line">&quot;webrtc-adapter&quot;: &quot;^7.2.9&quot;,</span><br></pre></td></tr></table></figure></li><li>Android项目引入google-webrtc以支持WEBRTC相关功能，socket-io实现Socket相关功能<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">implementation &#39;org.webrtc:google-webrtc:1.0.28513&#39;</span><br><span class="line">implementation &#39;io.socket:socket.io-client:1.0.0&#39;</span><br></pre></td></tr></table></figure></li><li>信令服务器项目引入NettySocketIO，实现Socket相关功能<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">compile group: &#x27;io.socket&#x27;, name: &#x27;socket.io-client&#x27;, version: &#x27;1.0.0&#x27;</span><br></pre></td></tr></table></figure><h3 id="功能实现流程"><a href="#功能实现流程" class="headerlink" title="功能实现流程"></a>功能实现流程</h3></li></ol><ul><li>移动端：移动端设备登陆后，建立Socket连接，获取ICEServer配置信息，Socket.emit通知服务端上线设备上线（心跳维护其在线状态保持在线），同时初始化WEBRTC信息（PeerConnection，MediaStream，DataChannel），服务端记录ClientID及业务ID，并进行映射关系处理，以便WEB端进行业务操作及联机。</li><li>WEB端：查询服务器中在线设备列表，创建Socket连接，服务器记录ClientID并进行映射关系处理，同时返回ICEServer配置信息，此时创建RTCPeerConnection，onicecandidate监听，根据业务ID查询在线设备的Client进行信令交换（信令交换操作会互相发送多次直至完成），完成后发送createOffer的SDP信息给服务端，服务端转发至移动端，移动端接收后响应createAnswer信息到服务端，服务端再转发给WEB端响应，成功后会话联机成功，即可看见安卓设备屏幕信息，WEB端根据屏幕坐标调用OnMouseDown，OnMouseMove，OnMouseUp方法计算点击位置百分比，通过DataChannel发送至移动端，移动端根据点击位置百分比映射点击位置，响应操作。</li><li>服务端：主要作为业务支撑和信令交换提供服务，Client与业务ID映射，用户鉴权（状态维护），缓存等</li></ul><h3 id="核心代码示例"><a href="#核心代码示例" class="headerlink" title="核心代码示例"></a>核心代码示例</h3><h4 id="信令服务器整合Netty-SocketIO服务，心跳处理，信令监听，初始化握手监听。"><a href="#信令服务器整合Netty-SocketIO服务，心跳处理，信令监听，初始化握手监听。" class="headerlink" title="信令服务器整合Netty-SocketIO服务，心跳处理，信令监听，初始化握手监听。"></a>信令服务器整合Netty-SocketIO服务，心跳处理，信令监听，初始化握手监听。</h4><ul><li>Netty-SocketIO服务<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/jzQIMYsS6Hbiyde.jpg"></li><li>初始化启动NettySocketIO<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/R9gD7zEhKVwULaF.jpg"></li><li>信令监听<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/lv4BFKG5Lro1jUq.jpg"></li><li>ICEServer信息<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/ieEhs6TwKFlOLaB.jpg"></li><li>端在线状态信息维护的就不放了，根据自己业务实现</li></ul><h4 id="WEB端创建Socket连接，监听onicecandidate，createOffer等信息。"><a href="#WEB端创建Socket连接，监听onicecandidate，createOffer等信息。" class="headerlink" title="WEB端创建Socket连接，监听onicecandidate，createOffer等信息。"></a>WEB端创建Socket连接，监听onicecandidate，createOffer等信息。</h4><ul><li>创建SocketIO实例<br>  <img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/yQw3oeGpfuNOSq5.png"></li><li>初始化WEBRTC等相关信息<br>  <img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/hKg4Cs7HaGuzWUX.jpg"></li><li>候选指令处理<br>  <img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/Bt7ZIeGaAUSPyMC.jpg"></li><li>Answer响应处理<br>  <img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/AmwoMuvGLcHI62S.jpg"></li><li>鼠标点击位置比率计算<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/q5zGnSXwkOP14vc.jpg"></li></ul><h4 id="STUN-TURN服务器（ICEServer）搭建"><a href="#STUN-TURN服务器（ICEServer）搭建" class="headerlink" title="STUN/TURN服务器（ICEServer）搭建"></a>STUN/TURN服务器（ICEServer）搭建</h4><blockquote><p>开发可以在同一内网测试，无需配置，外网访问具体教程请百度，文章太多了，不赘述。</p></blockquote><h4 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h4><blockquote><p>开发推荐使用Chrome浏览器，如果开发者需要调用摄像头则需要在新版Chrome中本地需要开启一个配置，Chrome地址栏输入：chrome://flags/ 找到 Insecure origins treated as secure 此列新增调试网址名单，重启浏览器即可配置成功。</p></blockquote><p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/T5Vb387dY2tzJ1L.jpg"></p><h2 id="项目成果示例"><a href="#项目成果示例" class="headerlink" title="项目成果示例"></a>项目成果示例</h2><p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/ZnFKwp2PHSWTj7A.jpg"><br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/6yKRAa7nLb5cqFk.jpg"></p>]]></content>
+      
+      
+      <categories>
+          
+          <category> WEBRTC </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> SpringBoot </tag>
+            
+            <tag> WEBRtc </tag>
+            
+            <tag> Android </tag>
+            
+            <tag> Socket.io </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>Docker安装Jenkins</title>
       <link href="9021.html"/>
       <url>9021.html</url>

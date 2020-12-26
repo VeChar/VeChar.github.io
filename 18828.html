@@ -1,0 +1,311 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SpringBoot,NettySocket.IO,WEBRTC实现WEB端控制移动设备 | 北扬的技术博客</title><meta name="keywords" content="SpringBoot,WEBRtc,Android,Socket.io"><meta name="author" content="BeYoung"><meta name="copyright" content="BeYoung"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="前言：本文仅提供思路，相关代码不完整披露。        什么是WEBRTC? WEB RTC(Real-Time Communications) 简单点理解就是基于WEB平台的即时多媒体服务。应用譬如：视频会议（P2P），直播，监控，等更多的领域场景。  功能实现 基于WEBRTC实现WEB端通过DataChannel发送点击，长按，滑动控制等指令操作安卓移动端，移动端实时传">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpringBoot,NettySocket.IO,WEBRTC实现WEB端控制移动设备">
+<meta property="og:url" content="https://tech.lionly.net/18828.html">
+<meta property="og:site_name" content="北扬的技术博客">
+<meta property="og:description" content="前言：本文仅提供思路，相关代码不完整披露。        什么是WEBRTC? WEB RTC(Real-Time Communications) 简单点理解就是基于WEB平台的即时多媒体服务。应用譬如：视频会议（P2P），直播，监控，等更多的领域场景。  功能实现 基于WEBRTC实现WEB端通过DataChannel发送点击，长按，滑动控制等指令操作安卓移动端，移动端实时传">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://tech.lionly.net/null">
+<meta property="article:published_time" content="2020-02-26T09:08:21.000Z">
+<meta property="article:modified_time" content="2020-12-26T07:10:23.181Z">
+<meta property="article:author" content="BeYoung">
+<meta property="article:tag" content="SpringBoot">
+<meta property="article:tag" content="WEBRtc">
+<meta property="article:tag" content="Android">
+<meta property="article:tag" content="Socket.io">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tech.lionly.net/null"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://tech.lionly.net/18828"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="preconnect" href="//zz.bdstatic.com"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?83fa3fc383374b7909a7fb4429efc18c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    jQuery: 'https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js',
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+    },
+    fancybox: {
+      js: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}
+
+// https://stackoverflow.com/questions/16839698/jquery-getscript-alternative-in-native-javascript
+const getScript = url => new Promise((resolve, reject) => {
+  const script = document.createElement('script')
+  script.src = url
+  script.async = true
+  script.onerror = reject
+  script.onload = script.onreadystatechange = function() {
+    const loadState = this.readyState
+    if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+    script.onload = script.onreadystatechange = null
+    resolve()
+  }
+  document.head.appendChild(script)
+})</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2020-12-26 15:10:23'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(function () {  window.activateDarkMode = function () {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+    }
+  }
+  window.activateLightMode = function () {
+    document.documentElement.setAttribute('data-theme', 'light')
+   if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+    }
+  }
+  const autoChangeMode = 'false'
+  const t = saveToLocal.get('theme')
+  if (autoChangeMode === '1') {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+    const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+    const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+    if (t === undefined) {
+      if (isLightMode) activateLightMode()
+      else if (isDarkMode) activateDarkMode()
+      else if (isNotSpecified || hasNoSupport) {
+        const now = new Date()
+        const hour = now.getHours()
+        const isNight = hour <= 6 || hour >= 18
+        isNight ? activateDarkMode() : activateLightMode()
+      }
+      window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+        if (saveToLocal.get('theme') === undefined) {
+          e.matches ? activateDarkMode() : activateLightMode()
+        }
+      })
+    } else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else if (autoChangeMode === '2') {
+    const now = new Date()
+    const hour = now.getHours()
+    const isNight = hour <= 6 || hour >= 18
+    if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+    else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else {
+    if (t === 'dark') activateDarkMode()
+    else if (t === 'light') activateLightMode()
+  }const asideStatus = saveToLocal.get('aside-status')
+if (asideStatus !== undefined) {
+   if (asideStatus === 'hide') {
+     document.documentElement.classList.add('hide-aside')
+   } else {
+     document.documentElement.classList.remove('hide-aside')
+   }
+}})()</script><link rel="stylesheet" href="/assets/css/framework.css"/><link rel="stylesheet" href="/assets/css/note.css"/><meta name="generator" content="Hexo 5.3.0"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">加载中...</div></div></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="author-avatar"><img class="avatar-img" data-lazy-src="/null" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data"><div class="data-item is-center"><div class="data-item-link"><a href="/archives/"><div class="headline">文章</div><div class="length-num">7</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/categories/"><div class="headline">分类</div><div class="length-num">4</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/BeautyWords/"><i class="fa-fw fas fa-folder-open"></i><span> 诗词歌赋</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于博客</span></a></div></div></div></div><div id="body-wrap"><header class="no-top-img" id="page-header"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">北扬的技术博客</a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/BeautyWords/"><i class="fa-fw fas fa-folder-open"></i><span> 诗词歌赋</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于博客</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav></header><main class="layout" id="content-inner"><div id="post"><div id="post-info"><h1 class="post-title">SpringBoot,NettySocket.IO,WEBRTC实现WEB端控制移动设备</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2020-02-26T09:08:21.000Z" title="发表于 2020-02-26 17:08:21">2020-02-26</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2020-12-26T07:10:23.181Z" title="更新于 2020-12-26 15:10:23">2020-12-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/WEBRTC/">WEBRTC</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.1k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>3分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span></div></div></div><article class="post-content" id="article-container"><div class='tip'>
+    <p>
+    前言：本文仅提供思路，相关代码不完整披露。
+    <p>
+</div>
+
+<h2 id="什么是WEBRTC"><a href="#什么是WEBRTC" class="headerlink" title="什么是WEBRTC?"></a>什么是WEBRTC?</h2><blockquote>
+<p>WEB RTC(Real-Time Communications) 简单点理解就是基于WEB平台的即时多媒体服务。应用譬如：视频会议（P2P），直播，监控，等更多的领域场景。</p>
+</blockquote>
+<h2 id="功能实现"><a href="#功能实现" class="headerlink" title="功能实现"></a>功能实现</h2><blockquote>
+<p>基于WEBRTC实现WEB端通过DataChannel发送点击，长按，滑动控制等指令操作安卓移动端，移动端实时传回屏幕操作反馈（VideoTrack）。WEB端没有（CreateAnswer）功能，移动端没有发起会话的功能（CreateOffer），即双端相互单向通信（WEB端呼叫移动端，设备自动应答）。</p>
+</blockquote>
+<h2 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h2><blockquote>
+<p>在实现这个功能时翻阅了不少国内外相关资料，整理如下：<br>开源WEBRTC示例，WEBRTC接口文档（这个开源项目可能是官方提供的最完整的实现了，包含了很多功能，按需查阅）</p>
+</blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://www.w3.org/TR/webrtc/">https://www.w3.org/TR/webrtc/</a></li>
+<li><a target="_blank" rel="noopener" href="https://webrtc.github.io/samples/">https://webrtc.github.io/samples/</a></li>
+<li><a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API">https://developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API</a></li>
+</ul>
+<blockquote>
+<p>其他文档（很多文档内容都大同小异，思路基本都差不多）：</p>
+</blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/59520779">https://zhuanlan.zhihu.com/p/59520779</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.im/post/5cbdc145e51d456e541b4cec">https://juejin.im/post/5cbdc145e51d456e541b4cec</a></li>
+</ul>
+<h2 id="技术架构"><a href="#技术架构" class="headerlink" title="技术架构"></a>技术架构</h2><ul>
+<li>后端：SpringBoot 2.x，Netty-Socket.IO 1.7.x，Redis，MySQL</li>
+<li>前端：React，AntDesign，Socket-IO.js</li>
+<li>移动端：Android*</li>
+</ul>
+<h2 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h2><blockquote>
+<p>工作流程主要分为3个端，WEB（控制端），Android（移动端），Signal-Server（信令服务器）。</p>
+</blockquote>
+<h3 id="主要依赖"><a href="#主要依赖" class="headerlink" title="主要依赖"></a>主要依赖</h3><ol>
+<li>控制端项目引入SocketIO.js库，实现WebSocket通信，用来发送操作指令，交互信令等。WEBRTC-adapter用来支持WEBRTC相关功能<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&quot;socket.io-client&quot;: &quot;^2.0.2&quot;,</span><br><span class="line">&quot;socket.io-json-parser&quot;: &quot;^2.1.0&quot;,</span><br><span class="line">&quot;webrtc-adapter&quot;: &quot;^7.2.9&quot;,</span><br></pre></td></tr></table></figure></li>
+<li>Android项目引入google-webrtc以支持WEBRTC相关功能，socket-io实现Socket相关功能<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">implementation &#39;org.webrtc:google-webrtc:1.0.28513&#39;</span><br><span class="line">implementation &#39;io.socket:socket.io-client:1.0.0&#39;</span><br></pre></td></tr></table></figure></li>
+<li>信令服务器项目引入NettySocketIO，实现Socket相关功能<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">compile group: &#x27;io.socket&#x27;, name: &#x27;socket.io-client&#x27;, version: &#x27;1.0.0&#x27;</span><br></pre></td></tr></table></figure>
+<h3 id="功能实现流程"><a href="#功能实现流程" class="headerlink" title="功能实现流程"></a>功能实现流程</h3></li>
+</ol>
+<ul>
+<li>移动端：移动端设备登陆后，建立Socket连接，获取ICEServer配置信息，Socket.emit通知服务端上线设备上线（心跳维护其在线状态保持在线），同时初始化WEBRTC信息（PeerConnection，MediaStream，DataChannel），服务端记录ClientID及业务ID，并进行映射关系处理，以便WEB端进行业务操作及联机。</li>
+<li>WEB端：查询服务器中在线设备列表，创建Socket连接，服务器记录ClientID并进行映射关系处理，同时返回ICEServer配置信息，此时创建RTCPeerConnection，onicecandidate监听，根据业务ID查询在线设备的Client进行信令交换（信令交换操作会互相发送多次直至完成），完成后发送createOffer的SDP信息给服务端，服务端转发至移动端，移动端接收后响应createAnswer信息到服务端，服务端再转发给WEB端响应，成功后会话联机成功，即可看见安卓设备屏幕信息，WEB端根据屏幕坐标调用OnMouseDown，OnMouseMove，OnMouseUp方法计算点击位置百分比，通过DataChannel发送至移动端，移动端根据点击位置百分比映射点击位置，响应操作。</li>
+<li>服务端：主要作为业务支撑和信令交换提供服务，Client与业务ID映射，用户鉴权（状态维护），缓存等</li>
+</ul>
+<h3 id="核心代码示例"><a href="#核心代码示例" class="headerlink" title="核心代码示例"></a>核心代码示例</h3><h4 id="信令服务器整合Netty-SocketIO服务，心跳处理，信令监听，初始化握手监听。"><a href="#信令服务器整合Netty-SocketIO服务，心跳处理，信令监听，初始化握手监听。" class="headerlink" title="信令服务器整合Netty-SocketIO服务，心跳处理，信令监听，初始化握手监听。"></a>信令服务器整合Netty-SocketIO服务，心跳处理，信令监听，初始化握手监听。</h4><ul>
+<li>Netty-SocketIO服务<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/jzQIMYsS6Hbiyde.jpg"></li>
+<li>初始化启动NettySocketIO<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/R9gD7zEhKVwULaF.jpg"></li>
+<li>信令监听<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/lv4BFKG5Lro1jUq.jpg"></li>
+<li>ICEServer信息<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/ieEhs6TwKFlOLaB.jpg"></li>
+<li>端在线状态信息维护的就不放了，根据自己业务实现</li>
+</ul>
+<h4 id="WEB端创建Socket连接，监听onicecandidate，createOffer等信息。"><a href="#WEB端创建Socket连接，监听onicecandidate，createOffer等信息。" class="headerlink" title="WEB端创建Socket连接，监听onicecandidate，createOffer等信息。"></a>WEB端创建Socket连接，监听onicecandidate，createOffer等信息。</h4><ul>
+<li>创建SocketIO实例<br>  <img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/yQw3oeGpfuNOSq5.png"></li>
+<li>初始化WEBRTC等相关信息<br>  <img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/hKg4Cs7HaGuzWUX.jpg"></li>
+<li>候选指令处理<br>  <img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/Bt7ZIeGaAUSPyMC.jpg"></li>
+<li>Answer响应处理<br>  <img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/AmwoMuvGLcHI62S.jpg"></li>
+<li>鼠标点击位置比率计算<br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/q5zGnSXwkOP14vc.jpg"></li>
+</ul>
+<h4 id="STUN-TURN服务器（ICEServer）搭建"><a href="#STUN-TURN服务器（ICEServer）搭建" class="headerlink" title="STUN/TURN服务器（ICEServer）搭建"></a>STUN/TURN服务器（ICEServer）搭建</h4><blockquote>
+<p>开发可以在同一内网测试，无需配置，外网访问具体教程请百度，文章太多了，不赘述。</p>
+</blockquote>
+<h4 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h4><blockquote>
+<p>开发推荐使用Chrome浏览器，如果开发者需要调用摄像头则需要在新版Chrome中本地需要开启一个配置，Chrome地址栏输入：chrome://flags/ 找到 Insecure origins treated as secure 此列新增调试网址名单，重启浏览器即可配置成功。</p>
+</blockquote>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/T5Vb387dY2tzJ1L.jpg"></p>
+<h2 id="项目成果示例"><a href="#项目成果示例" class="headerlink" title="项目成果示例"></a>项目成果示例</h2><p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/ZnFKwp2PHSWTj7A.jpg"><br><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/12/26/6yKRAa7nLb5cqFk.jpg"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">BeYoung</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://tech.lionly.net/18828.html">https://tech.lionly.net/18828.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://tech.lionly.net" target="_blank">北扬的技术博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/SpringBoot/">SpringBoot</a><a class="post-meta__tags" href="/tags/WEBRtc/">WEBRtc</a><a class="post-meta__tags" href="/tags/Android/">Android</a><a class="post-meta__tags" href="/tags/Socket-io/">Socket.io</a></div><div class="post_share"><div class="social-share" data-image="/null" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/9021.html"><img class="next-cover" data-lazy-src="/assets/img/background/downpic.jpeg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Docker安装Jenkins</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></div><div class="aside_content" id="aside_content"><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="card-content"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFWEBRTC"><span class="toc-number">1.</span> <span class="toc-text">什么是WEBRTC?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8A%9F%E8%83%BD%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.</span> <span class="toc-text">功能实现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3"><span class="toc-number">3.</span> <span class="toc-text">参考文档</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8A%80%E6%9C%AF%E6%9E%B6%E6%9E%84"><span class="toc-number">4.</span> <span class="toc-text">技术架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%AD%A3%E6%96%87"><span class="toc-number">5.</span> <span class="toc-text">正文</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E8%A6%81%E4%BE%9D%E8%B5%96"><span class="toc-number">5.1.</span> <span class="toc-text">主要依赖</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8A%9F%E8%83%BD%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B"><span class="toc-number">5.2.</span> <span class="toc-text">功能实现流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E4%BB%A3%E7%A0%81%E7%A4%BA%E4%BE%8B"><span class="toc-number">5.3.</span> <span class="toc-text">核心代码示例</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BF%A1%E4%BB%A4%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%95%B4%E5%90%88Netty-SocketIO%E6%9C%8D%E5%8A%A1%EF%BC%8C%E5%BF%83%E8%B7%B3%E5%A4%84%E7%90%86%EF%BC%8C%E4%BF%A1%E4%BB%A4%E7%9B%91%E5%90%AC%EF%BC%8C%E5%88%9D%E5%A7%8B%E5%8C%96%E6%8F%A1%E6%89%8B%E7%9B%91%E5%90%AC%E3%80%82"><span class="toc-number">5.3.1.</span> <span class="toc-text">信令服务器整合Netty-SocketIO服务，心跳处理，信令监听，初始化握手监听。</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#WEB%E7%AB%AF%E5%88%9B%E5%BB%BASocket%E8%BF%9E%E6%8E%A5%EF%BC%8C%E7%9B%91%E5%90%AConicecandidate%EF%BC%8CcreateOffer%E7%AD%89%E4%BF%A1%E6%81%AF%E3%80%82"><span class="toc-number">5.3.2.</span> <span class="toc-text">WEB端创建Socket连接，监听onicecandidate，createOffer等信息。</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#STUN-TURN%E6%9C%8D%E5%8A%A1%E5%99%A8%EF%BC%88ICEServer%EF%BC%89%E6%90%AD%E5%BB%BA"><span class="toc-number">5.3.3.</span> <span class="toc-text">STUN&#x2F;TURN服务器（ICEServer）搭建</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%B6%E4%BB%96"><span class="toc-number">5.3.4.</span> <span class="toc-text">其他</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%A1%B9%E7%9B%AE%E6%88%90%E6%9E%9C%E7%A4%BA%E4%BE%8B"><span class="toc-number">6.</span> <span class="toc-text">项目成果示例</span></a></li></ol></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2020 By BeYoung</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text"><a href="/link/">友情链接</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div id="local-search"><div class="search-dialog"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><script>var preloader = {
+  endLoading: () => {
+    document.body.style.overflow = 'auto';
+    document.getElementById('loading-box').classList.add("loaded")
+  },
+  initLoading: () => {
+    document.body.style.overflow = '';
+    document.getElementById('loading-box').classList.remove("loaded")
+
+  }
+}
+window.addEventListener('load',()=> {preloader.endLoading()})</script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    let initData = {
+      el: '#vcomment',
+      appId: 'WKK4xJIEVwxWxior13oqnoGM-gzGzoHsz',
+      appKey: 'iJOkVzwXuQFguUUShnXmEzMg',
+      placeholder: 'Please leave your footprints',
+      avatar: 'monsterid',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: '',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+    }
+
+    if (true) { 
+      initData.requiredFields= ('nick,mail'.split(','))
+    }
+    
+    if (false) {
+      const otherData = false
+      initData = Object.assign({}, initData, otherData)
+    }
+    
+    const valine = new Valine(initData)
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js').then(initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true) btf.loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(loadValine, 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script defer="defer" id="fluttering_ribbon" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-fluttering-ribbon.min.js"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/click-heart.min.js" async="async" mobile="false"></script><script>(function(){
+  const bp = document.createElement('script');
+  const curProtocol = window.location.protocol.split(':')[0];
+  if (curProtocol === 'https') {
+    bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+  }
+  else{
+    bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+  }
+  bp.dataset.pjax = ''
+  const s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(bp, s);
+})()</script></div></body></html>
